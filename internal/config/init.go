@@ -61,9 +61,9 @@ func Init(configPath string) {
 	slog.Info(fmt.Sprintf("set SOURCE_DATE_EPOCH=%d", t.Unix()))
 	Env = append(Env, fmt.Sprintf("SOURCE_DATE_EPOCH=%d", t.Unix()))
 
-	CFLAGS := fmt.Sprintf("CFLAGS=\"-ffile-prefix-map=%s=. -frandom-seed=%s\"",WorkingDir, Cfg.MetaData.RandomSeed)
-	CXXFLAGS := fmt.Sprintf("CXXFLAGS=\"-ffile-prefix-map=%s=. -frandom-seed=%s\"",WorkingDir, Cfg.MetaData.RandomSeed)
-	REPROBUILD_COMPILER_FLAGS := fmt.Sprintf("REPROBUILD_COMPILER_FLAGS=\"-ffile-prefix-map=%s=. -frandom-seed=%s\"",WorkingDir, Cfg.MetaData.RandomSeed)
+	CFLAGS := fmt.Sprintf("CFLAGS=-ffile-prefix-map=%s=. -frandom-seed=%s",WorkingDir, Cfg.MetaData.RandomSeed)
+	CXXFLAGS := fmt.Sprintf("CXXFLAGS=-ffile-prefix-map=%s=. -frandom-seed=%s",WorkingDir, Cfg.MetaData.RandomSeed)
+	REPROBUILD_COMPILER_FLAGS := fmt.Sprintf("REPROBUILD_COMPILER_FLAGS=-ffile-prefix-map=%s=. -frandom-seed=%s",WorkingDir, Cfg.MetaData.RandomSeed)
 
 	slog.Info(fmt.Sprintf("set %s", CFLAGS))
 	slog.Info(fmt.Sprintf("set %s", CXXFLAGS))
