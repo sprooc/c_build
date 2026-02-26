@@ -103,7 +103,7 @@ func (p *pkgMgr) runUpdate() {
 	runCommand(p.updateCommand, []string{}, os.Stdout)
 }
 
-func (p *pkgMgr) runInstall(libInfo config.LibInfo) {
+func (p *pkgMgr) RunInstall(libInfo config.LibInfo) {
 	tpl, err := template.New("lib_full_name").Parse(p.versionTmpl)
 	if err != nil {
 		panic(err)

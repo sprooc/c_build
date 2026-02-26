@@ -46,11 +46,16 @@ func Init(create bool) {
 			WorkingDir: config.WorkingDir,
 			Env: config.Env,
 		},&container.HostConfig {
+			Privileged: true,
 			Binds: []string{
 				config.HostBuildRootDir + ":" + config.WorkingDir,
 				config.HostReprobuildDir + ":" + config.ReprobuildDir,
+				"/sys:/sys",
+				"/lib/modules:/lib/modules",
+				"/usr/src:/usr/src",
 			},
-			NetworkMode: "host",
+			PidMode:     "host",
+			NetworkMode: "host",		
 		}, nil, nil, config.ContainerName)
 
 		if err != nil {
@@ -164,4 +169,16 @@ func GetImageInspect(imageID string) image.InspectResponse {
 		panic(err)
 	}
 	return inspect
+}
+
+func FileExists(filePath string) (bool, error) {
+    _, err := Cli.ContainerStatPath(context.Background(), containerID, filePath)
+    if err != nil {
+        if client.IsErrNotFound(err) {
+            return false, nil
+        }
+        return false, err
+    }
+
+    return true, nil
 }

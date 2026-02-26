@@ -54,11 +54,45 @@ func Build() {
 		writer.Flush()
 	}
 
-	MakeCommand := fmt.Sprintf("umask %s && %s", config.Cfg.MetaData.Umask, config.BuildCmd)
+	pkgMgr := installer.GetPkgMgr(config.PkgMgrName)
+
+	(&pkgMgr).RunInstall(config.LibInfo{
+		Name : "wget",
+	})
+	(&pkgMgr).RunInstall(config.LibInfo{
+		Name : "sudo",
+	})
+
+	if exist, err := docker.FileExists("/usr/bin/bpftrace0.24"); (!exist) || err != nil {
+		MakeInstallCommand := fmt.Sprintf("cd %s && make install", config.ReprobuildDir)
+
+		err = docker.Run([]string{"sh", "-c", MakeInstallCommand}, os.Stdout)
+
+		if err != nil {
+			slog.Error("install bpftrace in docker failed")
+		}
+	}
+
+	Reprobuild := config.ReprobuildDir + "/build/reprobuild"
+
+	if exist, err := docker.FileExists(Reprobuild); (!exist) || err != nil {
+		docker.Run([]string{"make", "-C", config.ReprobuildDir}, os.Stdout)
+	} 
+
+	docker.Run([]string {"cp", Reprobuild, "/"}, os.Stdout)
+
+	var MakeCommand string
+
+	if config.GraphOutputPath != "" {
+		MakeCommand = fmt.Sprintf("umask %s && /reprobuild -g=%s %s", config.Cfg.MetaData.Umask, config.GraphOutputPath, config.BuildCmd)
+		// umask 022 && ./A -g=B make
+	} else {
+		MakeCommand = fmt.Sprintf("umask %s && /reprobuild -g %s", config.Cfg.MetaData.Umask, config.BuildCmd)
+	}
+
 
 	MakeCommand = strings.ReplaceAll(MakeCommand, "&&", "&& " + ld_path)
 
-	fmt.Println(MakeCommand)
 
 	err = docker.Run([]string{"sh", "-c", MakeCommand}, os.Stdout)
 	if err != nil {
