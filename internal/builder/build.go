@@ -15,6 +15,8 @@ import (
 	// "github.com/venlax/c_build/internal/installer"
 )
 
+var originGraph *BuildGraph
+
 func Build() {
 	// err := docker.Run([]string{"cd", config.WorkingDir}, os.Stdout)
 	// if err != nil {
@@ -26,7 +28,19 @@ func Build() {
 	// 	panic(err)
 	// }
 
-	err := docker.Run([]string{"make", "clean"}, os.Stdout)
+	originDir, err := extractWorkingDir(config.HostBuildRootDir + "/build_graph.yaml")
+
+	if err != nil || originDir == "" {
+		slog.Error("can't get the working dir from the build_graph.yaml")
+	}
+
+	originGraph, err = LoadGraph(config.HostBuildRootDir + "/build_graph.yaml", originDir)
+
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	err = docker.Run([]string{"make", "clean"}, os.Stdout)
 	if err != nil {
 		panic(err)
 	}
@@ -109,6 +123,36 @@ func Build() {
 }
 
 func Check() {
+	slog.Info("Verify the build graph")
+
+	var buildGraph *BuildGraph
+	var err error
+
+	if config.GraphOutputPath == "" {
+		buildGraph, err = LoadGraph(config.HostBuildRootDir + "/build_graph.yaml", config.WorkingDir)
+	} else {
+		dstPath := "/tmp/build_graph.yaml"
+
+		err = docker.CopyFileFromContainer(config.GraphOutputPath, dstPath)
+		if err != nil {
+			slog.Error(err.Error())
+		}
+		
+		buildGraph, err = LoadGraph(dstPath, config.WorkingDir)
+	}
+
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	if !EqualGraph(originGraph, buildGraph) {
+		slog.Error("the build graph not equal to the original one")
+	} else {
+		slog.Info("[OK]: the build graphs are equal")
+	}
+
+	slog.Info("Check the artifacts")
+
 	for _, artifact := range config.Cfg.Artifacts {
 		sha256sum, err := installer.Sha256File(config.WorkingDir + "/" + artifact.Path)
 		if err != nil {

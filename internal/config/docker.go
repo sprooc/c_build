@@ -10,9 +10,11 @@ var WorkingDir = "/ws"
 
 var ReprobuildDir = "/opt/reprobuild"
 
+var GraphOutputPath = ""
+
 var Env []string = []string {
-	// "http_proxy=http://127.0.0.1:7890",
-	// "https_proxy=http://127.0.0.1:7890",
+	// "http_proxy=${your own proxy}",
+	// "https_proxy=${your own proxy}",
 	"CC=/usr/bin/x86_64-linux-gnu-gcc-14",
 	"CXX=/usr/bin/x86_64-linux-gnu-g++-14",
 	// "CFLAGS=-ffile-prefix-map=/ws=.",
