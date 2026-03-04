@@ -32,12 +32,14 @@ func Build() {
 
 	if err != nil || originDir == "" {
 		slog.Error("can't get the working dir from the build_graph.yaml")
+		panic(err)
 	}
 
 	originGraph, err = LoadGraph(config.HostBuildRootDir + "/build_graph.yaml", originDir)
 
 	if err != nil {
 		slog.Error(err.Error())
+		panic(err)
 	}
 
 	err = docker.Run([]string{"make", "clean"}, os.Stdout)
@@ -84,6 +86,7 @@ func Build() {
 
 		if err != nil {
 			slog.Error("install bpftrace in docker failed")
+			panic(err)
 		}
 	}
 
@@ -136,6 +139,7 @@ func Check() {
 		err = docker.CopyFileFromContainer(config.GraphOutputPath, dstPath)
 		if err != nil {
 			slog.Error(err.Error())
+			panic(err)
 		}
 		
 		buildGraph, err = LoadGraph(dstPath, config.WorkingDir)
@@ -143,10 +147,12 @@ func Check() {
 
 	if err != nil {
 		slog.Error(err.Error())
+		panic(err)
 	}
 
 	if !EqualGraph(originGraph, buildGraph) {
 		slog.Error("the build graph not equal to the original one")
+		os.Exit(1)
 	} else {
 		slog.Info("[OK]: the build graphs are equal")
 	}
