@@ -6,17 +6,19 @@ var ContainerName string = "unspecified" // container already exists just reuse 
 
 // var ContainerName string = "unspecified-gcc" // container already exists just reuse it not remove it
 
+// WorkingDir is overwritten from metadata.build_path during Init so the
+// container sees the project at the same path as the host build.
 var WorkingDir = "/ws"
 
 var ReprobuildDir = "/opt/reprobuild"
 
 var GraphOutputPath = ""
 
-var Env []string = []string {
+var Env []string = []string{
 	// "http_proxy=${your own proxy}",
 	// "https_proxy=${your own proxy}",
-	"CC=/usr/bin/x86_64-linux-gnu-gcc-14",
-	"CXX=/usr/bin/x86_64-linux-gnu-g++-14",
+	// "CC=gcc",
+	// "CXX=g++",
 	// "CFLAGS=-ffile-prefix-map=/ws=.",
 	// "CXXFLAGS=-ffile-prefix-map=/ws=.",
 }

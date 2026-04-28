@@ -28,6 +28,10 @@ func Init(configPath string) {
 	HostBuildRootDir = Cfg.MetaData.BuildPath
 
 	slog.Info(fmt.Sprintf("Build root dir: <%s>", HostBuildRootDir))
+	if HostBuildRootDir != "" {
+		WorkingDir = HostBuildRootDir
+	}
+	slog.Info(fmt.Sprintf("Container working dir: <%s>", WorkingDir))
 
 	if len(Cfg.MetaData.BuildCmd) > 0 {
 		BuildCmd = Cfg.MetaData.BuildCmd
@@ -38,11 +42,11 @@ func Init(configPath string) {
 	// fmt.Println("Dependencies:")
 	for _, dep := range Cfg.Dependencies {
 		lib := LibInfo{
-			Name: dep.Name,
-			Path: dep.Path,
+			Name:    dep.Name,
+			Path:    dep.Path,
 			Version: dep.Version,
-			Sha256: dep.Hash,
-			Origin: dep.Origin,
+			Sha256:  dep.Hash,
+			Origin:  dep.Origin,
 		}
 		HasCustom = lib.Origin == "custom"
 		Libs = append(Libs, lib)
@@ -61,15 +65,20 @@ func Init(configPath string) {
 	slog.Info(fmt.Sprintf("set SOURCE_DATE_EPOCH=%d", t.Unix()))
 	Env = append(Env, fmt.Sprintf("SOURCE_DATE_EPOCH=%d", t.Unix()))
 
-	CFLAGS := fmt.Sprintf("CFLAGS=-ffile-prefix-map=%s=. -frandom-seed=%s",WorkingDir, Cfg.MetaData.RandomSeed)
-	CXXFLAGS := fmt.Sprintf("CXXFLAGS=-ffile-prefix-map=%s=. -frandom-seed=%s",WorkingDir, Cfg.MetaData.RandomSeed)
-	REPROBUILD_COMPILER_FLAGS := fmt.Sprintf("REPROBUILD_COMPILER_FLAGS=-ffile-prefix-map=%s=. -frandom-seed=%s",WorkingDir, Cfg.MetaData.RandomSeed)
+	compilerFlags := fmt.Sprintf(" -ffile-prefix-map=%s=. -frandom-seed=%s", WorkingDir, Cfg.MetaData.RandomSeed)
+	CFLAGS := fmt.Sprintf("CFLAGS=%s", compilerFlags)
+	CXXFLAGS := fmt.Sprintf("CXXFLAGS=%s", compilerFlags)
+	CPPFLAGS := fmt.Sprintf("CPPFLAGS=%s", compilerFlags)
+	REPROBUILD_COMPILER_FLAGS := fmt.Sprintf("REPROBUILD_COMPILER_FLAGS=%s", compilerFlags)
+	REPROBUILD_PATH_MAP := fmt.Sprintf("REPROBUILD_PATH_MAP=%s=%s", HostBuildRootDir, WorkingDir)
 
 	slog.Info(fmt.Sprintf("set %s", CFLAGS))
 	slog.Info(fmt.Sprintf("set %s", CXXFLAGS))
+	slog.Info(fmt.Sprintf("set %s", CPPFLAGS))
 	slog.Info(fmt.Sprintf("set %s", REPROBUILD_COMPILER_FLAGS))
+	slog.Info(fmt.Sprintf("set %s", REPROBUILD_PATH_MAP))
 
-	Env = append(Env, CFLAGS, CXXFLAGS, REPROBUILD_COMPILER_FLAGS)
+	Env = append(Env, CFLAGS, CXXFLAGS, CPPFLAGS, REPROBUILD_COMPILER_FLAGS, REPROBUILD_PATH_MAP)
 
 	locales := strings.Split(Cfg.MetaData.Locale, "\n")
 

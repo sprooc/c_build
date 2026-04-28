@@ -25,27 +25,28 @@ func Init(create bool) {
 		panic(err)
 	}
 
-	readCloser, err := Cli.ImagePull(ctx, config.Image, image.PullOptions{})
+	if _, err := Cli.ImageInspect(ctx, config.Image); err == nil {
+		fmt.Fprintf(os.Stdout, "use local docker image %s\n", config.Image)
+	} else {
+		readCloser, err := Cli.ImagePull(ctx, config.Image, image.PullOptions{})
+		if err != nil {
+			panic(err)
+		}
+		defer readCloser.Close()
 
-	if err != nil {
-		panic(err)
-	}
-
-	defer readCloser.Close()
-
-	_, err = io.Copy(os.Stdout, readCloser)
-
-	if err != nil {
-		panic(err)
+		_, err = io.Copy(os.Stdout, readCloser)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if create {
 		resp, err := Cli.ContainerCreate(ctx, &container.Config{
-			Image: config.Image,
-			Cmd: []string{"tail", "-f", "/dev/null"},
+			Image:      config.Image,
+			Cmd:        []string{"tail", "-f", "/dev/null"},
 			WorkingDir: config.WorkingDir,
-			Env: config.Env,
-		},&container.HostConfig {
+			Env:        config.Env,
+		}, &container.HostConfig{
 			Privileged: true,
 			Binds: []string{
 				config.HostBuildRootDir + ":" + config.WorkingDir,
@@ -55,7 +56,7 @@ func Init(create bool) {
 				"/usr/src:/usr/src",
 			},
 			PidMode:     "host",
-			NetworkMode: "host",		
+			NetworkMode: "host",
 		}, nil, nil, config.ContainerName)
 
 		if err != nil {
@@ -80,7 +81,6 @@ func Init(create bool) {
 		}
 	}
 
-
 	// inspect, err := Cli.ContainerInspect(ctx, containerID)
 	// fmt.Println(inspect.State.Status)
 	// if inspect.State.Running {
@@ -89,12 +89,11 @@ func Init(create bool) {
 
 }
 
-
 func Run(command []string, writer io.Writer) error {
 	ctx := context.Background()
 
 	resp, err := Cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
-		Cmd: command,
+		Cmd:          command,
 		AttachStdout: true,
 		AttachStderr: true,
 	})
@@ -131,7 +130,6 @@ func Run(command []string, writer io.Writer) error {
 	return nil
 }
 
-
 // func containerExist(name string) bool {
 // 	containers, err := Cli.ContainerList(context.Background(), container.ListOptions{})
 // 	if err != nil {
@@ -147,7 +145,7 @@ func getContainer(name string) (bool, container.Summary) {
 		panic(err)
 	}
 
-	idx := slices.IndexFunc(containers, func(c container.Summary) bool {return c.Names[0][1:] == name})
+	idx := slices.IndexFunc(containers, func(c container.Summary) bool { return c.Names[0][1:] == name })
 
 	if idx == -1 {
 		return false, container.Summary{}
@@ -172,13 +170,13 @@ func GetImageInspect(imageID string) image.InspectResponse {
 }
 
 func FileExists(filePath string) (bool, error) {
-    _, err := Cli.ContainerStatPath(context.Background(), containerID, filePath)
-    if err != nil {
-        if client.IsErrNotFound(err) {
-            return false, nil
-        }
-        return false, err
-    }
+	_, err := Cli.ContainerStatPath(context.Background(), containerID, filePath)
+	if err != nil {
+		if client.IsErrNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
 
-    return true, nil
+	return true, nil
 }

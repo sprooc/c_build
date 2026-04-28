@@ -16,67 +16,67 @@ type commandArgsPassWay int
 
 const (
 	Tail commandArgsPassWay = iota
-	Xargs 
+	Xargs
 	NoArgs
 )
 
 type command struct {
-	strs []string
+	strs    []string
 	passWay commandArgsPassWay
 }
 
-type pkgMgr struct{
-	name string
-	versionTmpl string
-	updateCommand command
-	installCommand command	
+type pkgMgr struct {
+	name           string
+	versionTmpl    string
+	updateCommand  command
+	installCommand command
 }
 
-var pkgMgrs map[string]pkgMgr = map[string]pkgMgr {
-	"apt" : {
-		"apt", 
+var pkgMgrs map[string]pkgMgr = map[string]pkgMgr{
+	"apt": {
+		"apt",
 		`{{.Name}}={{.Version}}`,
-		command {
-			[]string{"apt", "update"},
+		command{
+			[]string{"apt-get", "-o", "Acquire::Retries=5", "-o", "Acquire::http::Timeout=30", "-o", "Acquire::ForceIPv4=true", "update"},
 			NoArgs,
-		}, 
-		command {
-			[]string{"apt", "install", "-y", "--allow-downgrades"},
+		},
+		command{
+			[]string{"apt-get", "-o", "Acquire::Retries=5", "-o", "Acquire::http::Timeout=30", "-o", "Acquire::ForceIPv4=true", "install", "-y", "--allow-downgrades"},
 			Tail,
 		},
 	},
-	"apk" : {
+	"apk": {
 		"apk",
 		`{{.Name}}={{.Version}}`,
-		command {
+		command{
 			[]string{"apk", "update"},
 			NoArgs,
 		},
-		command {
+		command{
 			[]string{"apk", "add", "-y"},
 			Tail,
 		},
 	},
-	"dnf" : {
+	"dnf": {
 		"dnf",
 		`{{.Name}}-{{.Version}}`,
-		command {
+		command{
 			[]string{"dnf", "makecache"},
 			NoArgs,
 		},
-		command {
+		command{
 			[]string{"dnf", "install", "-y", "--allowerasing"},
 			Tail,
 		},
 	},
-	"yum" : {
+	"yum": {
 		"yum",
 		`{{.Name}}-{{.Version}}`,
-		command {
+		command{
 			[]string{"yum", "makecache"},
 			NoArgs,
 		},
-		command {
+		command{
 			[]string{"yum", "install", "-y"},
 			Tail,
 		},
@@ -84,11 +84,11 @@ var pkgMgrs map[string]pkgMgr = map[string]pkgMgr {
 	"pacman": {
 		"pacman",
 		`{{.Name}}`,
-		command {
+		command{
 			[]string{"pacman", "-Syu"},
 			NoArgs,
 		},
-		command {
+		command{
 			[]string{"pacman", "-U", "--noconfirm"},
 			Tail,
 		},
@@ -129,7 +129,7 @@ func (p *pkgMgr) RunInstall(libInfo config.LibInfo) {
 	// }
 
 	// go to checker please
-} 
+}
 
 func (p *pkgMgr) runInstallAll() {
 	tmp := make([]string, len(config.Libs))
@@ -153,12 +153,12 @@ func (p *pkgMgr) runInstallAll() {
 			arg = buf.String()
 		}
 		tmp[i] = arg
-	} 
+	}
 	runCommand(p.installCommand, tmp, os.Stdout)
-} 
+}
 
 // func (p *pkgMgr) runGetLibVersion(libInfo config.LibInfo) string {
-// 	var sb strings.Builder 
+// 	var sb strings.Builder
 // 	runCommand(p.getLibVersionCommand, []string{libInfo.Name}, &sb)
 // 	versionRawStr := sb.String()
 // 	return strings.TrimSpace(strings.TrimPrefix(versionRawStr, "Version:"))
@@ -175,7 +175,7 @@ func runCommand(c command, args []string, writer io.Writer) {
 	case Xargs:
 		cmd = append(cmd, "sh", "-c")
 		realCmdStr := fmt.Sprintf(`echo %s | xargs %s`, strings.Join(args, ", "), strings.Join(c.strs, " "))
-		cmd = append(cmd, realCmdStr)		
+		cmd = append(cmd, realCmdStr)
 		// cmd = append(cmd, "xargs")
 		// cmd = append(cmd, args...)
 		// cmd = append(cmd)
@@ -184,7 +184,7 @@ func runCommand(c command, args []string, writer io.Writer) {
 	}
 
 	err := docker.Run(cmd, writer)
-	if (err != nil) {
+	if err != nil {
 		panic(err)
 	}
 }
@@ -200,7 +200,7 @@ func commandStr(c command, args []string) string {
 	case Xargs:
 		cmd = append(cmd, "sh", "-c")
 		realCmdStr := fmt.Sprintf(`echo %s | xargs %s`, strings.Join(args, ", "), strings.Join(c.strs, " "))
-		cmd = append(cmd, realCmdStr)		
+		cmd = append(cmd, realCmdStr)
 		// cmd = append(cmd, "xargs")
 		// cmd = append(cmd, args...)
 		// cmd = append(cmd)

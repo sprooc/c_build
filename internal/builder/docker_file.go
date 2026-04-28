@@ -11,7 +11,6 @@ import (
 	"github.com/venlax/c_build/internal/installer"
 )
 
-
 const dockerfileTmpl string = `FROM {{.Image}}
 
 {{- if .Env }}
@@ -30,11 +29,11 @@ CMD ["/bin/sh", "-c", "{{ .BuildCmd }}"]
 `
 
 type DockerfileTmplData struct {
-	Image string
-	Env []string
-	WorkDir string
+	Image       string
+	Env         []string
+	WorkDir     string
 	InstallCmds []string
-	BuildCmd string
+	BuildCmd    string
 }
 
 func RenderDockerfile(dstDir string, digest string) {
@@ -71,13 +70,16 @@ func genDockerfileData(digest string) DockerfileTmplData {
 	data.WorkDir = config.WorkingDir
 	data.Env = config.Env
 	data.InstallCmds = installer.InstallStrs()
-	var ld_path string
+	cleanCmd := os.Getenv("C_BUILD_CLEAN_CMD")
+	buildCmd := fmt.Sprintf("umask %s && export LD_PRELOAD=%s/libreprobuild_interceptor.so && %s",
+		config.Cfg.MetaData.Umask, config.ReprobuildDir, config.BuildCmd)
 	if config.HasCustom {
-		ld_path = fmt.Sprintf("env LD_PRELOAD=%s/libreprobuild_interceptor.so LD_LIBRARY_PATH=\"%s/deps:$LD_LIBRARY_PATH\"", config.ReprobuildDir, config.WorkingDir)
-	} else {
-		ld_path = fmt.Sprintf("env LD_PRELOAD=%s/libreprobuild_interceptor.so", config.ReprobuildDir)
+		buildCmd = fmt.Sprintf("umask %s && export LD_PRELOAD=%s/libreprobuild_interceptor.so && export LD_LIBRARY_PATH=\"%s/deps:$LD_LIBRARY_PATH\" && %s",
+			config.Cfg.MetaData.Umask, config.ReprobuildDir, config.WorkingDir, config.BuildCmd)
 	}
-	BuildCommand := fmt.Sprintf("umask %s && %s", config.Cfg.MetaData.Umask, config.BuildCmd)
-	data.BuildCmd = "make clean && " + strings.ReplaceAll(BuildCommand, "&&", "&& " + ld_path)
+	if cleanCmd != "" {
+		buildCmd = cleanCmd + " && " + buildCmd
+	}
+	data.BuildCmd = buildCmd
 	return data
 }
